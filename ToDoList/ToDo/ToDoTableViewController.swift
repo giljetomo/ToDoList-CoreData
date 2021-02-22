@@ -22,18 +22,7 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
     var itemForEditIndexPath: IndexPath?
     
     let sections = Priority.allCases
-    var toDoList: [Category] = [
-        Category(group: .high, toDos: [ToDo(title: "House chore", todoDescription: "Wash the dishes", priority: .high, isCompleted: false)]),
-        
-        Category(group: .medium, toDos: [ToDo(title: "Exercise", todoDescription: "Walk", priority: .medium, isCompleted: true)]),
-        
-        Category(group: .low, toDos: [ToDo(title: "House chore", todoDescription: "Do the laundry", priority: .low, isCompleted: true), ToDo(title: "Grooming", todoDescription: "Get a haircut", priority: .low, isCompleted: true)])
-    ] {
-        didSet {
-            //get status of the list if it is empty or not
-            toDoListIsEmpty = toDoList[0].toDos.isEmpty && toDoList[1].toDos.isEmpty && toDoList[2].toDos.isEmpty
-        }
-    }
+
     //Navigation Controller's right rightBarButtonItems
     var deleteButton: UIBarButtonItem!
     var addButton: UIBarButtonItem!
