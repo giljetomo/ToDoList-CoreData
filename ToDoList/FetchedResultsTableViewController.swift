@@ -28,11 +28,14 @@ class FetchedResultsTableViewController: UITableViewController, NSFetchedResults
         tableView.insertRows(at: [newIndexPath!], with: .fade)
       case .delete:
         tableView.deleteRows(at: [indexPath!], with: .fade)
-      case .update:
-        tableView.reloadRows(at: [indexPath!], with: .fade)
       case .move:
-        tableView.deleteRows(at: [indexPath!], with: .fade)
-        tableView.insertRows(at: [newIndexPath!], with: .fade)
+//        tableView.deleteRows(at: [indexPath!], with: .fade)
+//        tableView.insertRows(at: [ToDoTableViewController.destinationIndexPath!], with: .fade)
+        
+        //temporary implementation as delete/insert rows don't work properly
+        tableView.reloadData()
+      case .update:
+      tableView.reloadRows(at: [indexPath!], with: .fade)
       @unknown default:
         fatalError("FetchedResultsTableViewController -- unknown case found")
     }

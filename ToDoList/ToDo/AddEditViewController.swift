@@ -20,9 +20,6 @@ class AddEditViewController: UIViewController {
     //this UIViewController will delegate the edit task to ToDoTableViewController
     weak var addEditDelegate: addEditViewControllerDelegate?
     
-    //this list will be populated with all existing toDo items once this UIViewController has been created from ToDoTableViewController
-    var toDoList: [Category]?
-    
     var inEditMode: Bool?
     
     //this will hold the current toDo item being edited or added
@@ -87,6 +84,11 @@ class AddEditViewController: UIViewController {
             //text fields can be outside else clause
             toDoItemTitle.text = toDo?.title
             toDoItemDetails.text = toDo?.todoDescription
+            if let priority = toDo?.priority {
+                let p = Priority.allCases
+                guard let index = p.firstIndex(of: priority) else { return }
+                prioritySegmentedControl.selectedSegmentIndex = index
+            }
         }
         updateSaveButtonState()
     }
@@ -103,11 +105,11 @@ class AddEditViewController: UIViewController {
         //Save button will be disabled if the toDo item being added already exists
         guard let title = toDoItemTitle.text, title != "" else { return }
         //if guard passes, create a newToDo item
-        toDo = ToDo(title: toDoItemTitle.text!, todoDescription: toDoItemDetails.text, priority: .medium, isCompleted: false)
+//        toDo = ToDo(title: toDoItemTitle.text!, todoDescription: toDoItemDetails.text, priority: .medium, isCompleted: false)
         
         let context = container.viewContext
         let request: NSFetchRequest<ManagedToDo> = ManagedToDo.fetchRequest()
-        request.predicate = NSPredicate(format: "title == [c]%@", toDo!.title)
+        request.predicate = NSPredicate(format: "title == [c]%@", title)
         guard let item = try? context.fetch(request) else { return }
         saveButton.isEnabled = item.count == 0 ? true : false
     }
@@ -118,13 +120,14 @@ class AddEditViewController: UIViewController {
     
     @objc func saveItem() {
         
+        let selected = prioritySegmentedControl.titleForSegment(at: prioritySegmentedControl.selectedSegmentIndex)
+        let priority = Priority(rawValue: "\(selected!) Priority")
+        
         if let _ = inEditMode {
-            let toDoItem = ToDo(title: toDoItemTitle.text!, todoDescription: toDoItemDetails.text!, priority: toDo!.priority, isCompleted: toDo!.isCompleted)
+            let toDoItem = ToDo(title: toDoItemTitle.text!, todoDescription: toDoItemDetails.text!, priority: priority!, isCompleted: toDo!.isCompleted)
             addEditDelegate?.edit(toDoItem)
             navigationController?.popToRootViewController(animated: true)
         } else {
-            let selected = prioritySegmentedControl.titleForSegment(at: prioritySegmentedControl.selectedSegmentIndex)
-            let priority = Priority(rawValue: "\(selected!) Priority")
             toDo = ToDo(title: toDoItemTitle.text!, todoDescription: toDoItemDetails.text, priority: priority!, isCompleted: false)
             addEditDelegate?.add(toDo!)
             navigationController?.popToRootViewController(animated: true)

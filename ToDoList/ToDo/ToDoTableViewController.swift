@@ -38,11 +38,14 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
     var deleteButton: UIBarButtonItem!
     var addButton: UIBarButtonItem!
     var container: NSPersistentContainer = AppDelegate.persistentContainer
+    static var destinationIndexPath: IndexPath?
     
     lazy var fetchedResultsController: NSFetchedResultsController<ManagedToDo> = {
         let request: NSFetchRequest<ManagedToDo> = ManagedToDo.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+        //should be sorted by priorityNumber first then title
         request.sortDescriptors = [NSSortDescriptor(key: "priorityNumber", ascending: true)]
+        //  sorted by title works but this messes up when the item is moved/moveRowAt
+        //  request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         
         let frc = NSFetchedResultsController<ManagedToDo>(
             fetchRequest: request,
@@ -72,7 +75,7 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
         title = "Todo Items"
         navigationController?.navigationBar.prefersLargeTitles = true
         addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addItem))
-        deleteButton = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(deleteItem))
+        deleteButton = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(deleteItems))
         
         countToDoList()
         reloadNCBarButtonItems(isListEmpty: toDoListIsEmpty)
@@ -117,49 +120,46 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
     
     func add(_ todo: ToDo) {
         let context = container.viewContext
-        DispatchQueue.main.async { [weak self] in
-            context.perform {
-                _ = try? ManagedToDo.findOrCreateToDo(matching: todo, in: context)
-                try? context.save()
-                
-                self?.countToDoList()
-                self?.reloadNCBarButtonItems(isListEmpty: self!.toDoListIsEmpty )
-            }
-        }
+        _ = try? ManagedToDo.findOrCreateToDo(matching: todo, in: context)
+        try? context.save()
+        
+        countToDoList()
+        reloadNCBarButtonItems(isListEmpty: toDoListIsEmpty )
     }
     
     func edit(_ toDo: ToDo) {
         if let indexPath = itemForEditIndexPath {
-            toDoList[indexPath.section].toDos.remove(at: indexPath.row)
-            toDoList[indexPath.section].toDos.insert(toDo, at: indexPath.row)
-            tableView.reloadRows(at: [indexPath], with: .automatic)
+            let context = container.viewContext
+            context.delete(fetchedResultsController.object(at: indexPath))
+            _ = try? ManagedToDo.createToDo(context: context, toDo: toDo)
+            try? context.save()
         }
     }
     
     @objc func addItem() {
         let addVC = AddEditViewController()
         addVC.addEditDelegate = self
-        addVC.toDoList = toDoList
         
         navigationController?.pushViewController(addVC, animated: true)
     }
     
     override func tableView(_ tableView: UITableView, accessoryButtonTappedForRowWith indexPath: IndexPath) {
-        //get the selected toDo item when the cell's accessory button is tapped for editing
-        let toDoItem = toDoList[indexPath.section].toDos[indexPath.row]
-        //get the toDo item's indexPath to be used later for saving the updated toDo item in its proper location
-        itemForEditIndexPath = indexPath
-        
-        let editVC = AddEditViewController()
-        editVC.toDo = toDoItem
-        editVC.toDoList = toDoList
-        editVC.inEditMode = true
-        editVC.addEditDelegate = self
-        
-        navigationController?.pushViewController(editVC, animated: true)
+        //unknown bug - after moving cells, this function gets called so !tableView.isEditing guard is added
+        guard !tableView.isEditing else { return }
+            itemForEditIndexPath = indexPath
+            let cases = Priority.allCases
+            let toDo = fetchedResultsController.object(at: indexPath)
+            let toDoItem = ToDo(title: toDo.title!, todoDescription: toDo.toDoDescription, priority: cases[Int(toDo.priorityNumber)], isCompleted: toDo.isCompleted)
+            
+            let editVC = AddEditViewController()
+            editVC.toDo = toDoItem
+            editVC.inEditMode = true
+            editVC.addEditDelegate = self
+            
+            navigationController?.pushViewController(editVC, animated: true)
     }
     
-    @objc func deleteItem() {
+    @objc func deleteItems() {
         guard let selectedRows = tableView.indexPathsForSelectedRows else { return }
         let context = container.viewContext
         
@@ -240,38 +240,32 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
         }
     }
     override func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
-        
-        //if a cell has been deselected, selectedRows need to be updated
-//        if let selectedRows = tableView.indexPathsForSelectedRows {
-//            //get the [IndexPath] of all selected rows during edit mode
-//            self.selectedRows = selectedRows
-//        }
-        
         reloadNCBarButtonItems(isListEmpty: false)
     }
     
     override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         
-        //if any item is currently selected and has been moved, its respective IndexPath will be collected
+//        //if any item is currently selected and has been moved, its respective IndexPath will be collected
         if let selectedRows = tableView.indexPathsForSelectedRows {
             //get the [IndexPath] of all selected rows during edit mode
             self.selectedRows = selectedRows
-            print(selectedRows)
         }
-        //get and remove the selected todo item from the list (model)
-        var selected = toDoList[sourceIndexPath.section].toDos.remove(at: sourceIndexPath.row)
+        //code for debugging
+        //  let updated = ToDo(title: toDo.title!, todoDescription: toDo.toDoDescription, priority: sections[Int(toDo.priorityNumber)], isCompleted: toDo.isCompleted)
+        // _ = try? ManagedToDo.findOrCreateToDo(matching: updated, in: context)
+       
+        //destinationIndexPath needs to be stored as newIndexPath of the fetchController gets updated due to the sortDescriptor defined. For further debugging and implementation
+        ToDoTableViewController.destinationIndexPath = destinationIndexPath
         
-        //change the priority property of the todo item when moving to another section
-        switch destinationIndexPath.section {
-        case 0 : selected.priority = .high
-        case 1 : selected.priority = .medium
-        case 2 : selected.priority = .low
-        default: fatalError()
-        }
-        //insert the modified todo item to the destination to update the 'model'
-        toDoList[destinationIndexPath.section].toDos.insert(selected, at: destinationIndexPath.row)
+        let context = container.viewContext
+        let toDo = fetchedResultsController.object(at: sourceIndexPath)
+        toDo.priorityNumber = Int16(fetchedResultsController.sectionIndexTitles[destinationIndexPath.section])!
+        try? context.save()
     }
     
+    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
    //function needed to enable swipe delete
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {

@@ -18,12 +18,17 @@ class ManagedToDo: NSManagedObject {
             if matches.count > 0 {
                 // assert 'sanity': if condition false ... then print message and interrupt program
                 assert(matches.count == 1, "ManagedToDo.findOrCreateSource -- database inconsistency")
-                return matches[0]
+                let matchedToDo = matches[0]
+                return matchedToDo
             }
         } catch {
             throw error
         }
-        // no match, instantiate ManagedArticle
+        // no match, instantiate ManagedToDo
+        return try! createToDo(context: context, toDo: toDo)
+    }
+    
+    class func createToDo(context: NSManagedObjectContext, toDo: ToDo) throws -> ManagedToDo {
         let newToDo = ManagedToDo(context: context)
         newToDo.title = toDo.title
         newToDo.isCompleted = toDo.isCompleted
