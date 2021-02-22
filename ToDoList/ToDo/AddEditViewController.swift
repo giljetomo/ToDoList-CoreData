@@ -37,7 +37,6 @@ class AddEditViewController: UIViewController {
         tf.placeholder = "I need to..."
         tf.font = .systemFont(ofSize: 20)
         tf.heightAnchor.constraint(equalToConstant: 45).isActive = true
-        tf.translatesAutoresizingMaskIntoConstraints = false
         return tf
     }()
     
@@ -47,7 +46,6 @@ class AddEditViewController: UIViewController {
         tf.placeholder = "Details"
         tf.font = .systemFont(ofSize: 18)
         tf.heightAnchor.constraint(equalToConstant: 45).isActive = true
-        tf.translatesAutoresizingMaskIntoConstraints = false
         return tf
     }()
     
@@ -57,6 +55,7 @@ class AddEditViewController: UIViewController {
         sc.selectedSegmentIndex = 1
         let font = UIFont.systemFont(ofSize: 15)
         sc.setTitleTextAttributes([NSAttributedString.Key.font: font], for: .normal)
+        sc.addTarget(self, action: #selector(updateSaveButtonState), for: .valueChanged)
         return sc
     }()
     
@@ -68,7 +67,7 @@ class AddEditViewController: UIViewController {
         view.backgroundColor = .white
         navigationItem.rightBarButtonItem = saveButton
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(dismissView))
-        view.addSubview(mainView)
+        
         toDoItemTitle.becomeFirstResponder()
         
         toDoItemTitle.addTarget(self, action: #selector(textEditingChanged(_:)), for: .editingChanged)
@@ -97,19 +96,20 @@ class AddEditViewController: UIViewController {
         updateSaveButtonState()
     }
     
-    func updateSaveButtonState() {
+    @objc func updateSaveButtonState() {
         let newToDoItemText = toDoItemTitle.text ?? ""
         saveButton.isEnabled = !newToDoItemText.isEmpty
         
-        
         //Save button will be disabled if the toDo item being added already exists
         guard let title = toDoItemTitle.text, title != "" else { return }
-        //if guard passes, create a newToDo item
-//        toDo = ToDo(title: toDoItemTitle.text!, todoDescription: toDoItemDetails.text, priority: .medium, isCompleted: false)
         
+        let index = prioritySegmentedControl.selectedSegmentIndex
         let context = container.viewContext
         let request: NSFetchRequest<ManagedToDo> = ManagedToDo.fetchRequest()
-        request.predicate = NSPredicate(format: "title == [c]%@", title)
+        let titlePredicate = NSPredicate(format: "title == [c]%@", title)
+        let priorityPredicate = NSPredicate(format: "priorityNumber == %d", index)
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [titlePredicate, priorityPredicate])
+        request.predicate = andPredicate
         guard let item = try? context.fetch(request) else { return }
         saveButton.isEnabled = item.count == 0 ? true : false
     }
@@ -135,6 +135,7 @@ class AddEditViewController: UIViewController {
     }
     
     func setupLayout() {
+        view.addSubview(mainView)
         mainView.heightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.heightAnchor, multiplier: 1).isActive = true
         mainView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0).isActive = true
         mainView.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor, multiplier: 1).isActive = true

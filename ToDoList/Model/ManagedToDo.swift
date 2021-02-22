@@ -10,9 +10,12 @@ import CoreData
 
 class ManagedToDo: NSManagedObject {
     class func findOrCreateToDo(matching toDo: ToDo, in context: NSManagedObjectContext) throws -> ManagedToDo {
+        let cases = Priority.allCases
         let request: NSFetchRequest<ManagedToDo> = ManagedToDo.fetchRequest()
-        request.predicate = NSPredicate(format: "title = %@", toDo.title)
-        
+        let titlePredicate = NSPredicate(format: "title == [c]%@", toDo.title)
+        let priorityPredicate = NSPredicate(format: "priorityNumber == %d", cases.firstIndex(of: toDo.priority)!)
+        let andPredicate = NSCompoundPredicate(type: .and, subpredicates: [titlePredicate, priorityPredicate])
+        request.predicate = andPredicate
         do {
             let matches = try context.fetch(request)
             if matches.count > 0 {

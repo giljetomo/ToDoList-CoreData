@@ -15,7 +15,7 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
     //for storing the selected toDo item/s
     var selectedRows: [IndexPath]?
     
-    //for observing toDoList contents
+    //for observing toDoList core data
     var toDoListIsEmpty: Bool!
     
     //for storing the selected toDo item when detailDisclosureButton in a cell is selected
@@ -234,7 +234,7 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
     
     override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         
-//        //if any item is currently selected and has been moved, its respective IndexPath will be collected
+        //if any item is currently selected and has been moved, its respective IndexPath will be collected
         if let selectedRows = tableView.indexPathsForSelectedRows {
             //get the [IndexPath] of all selected rows during edit mode
             self.selectedRows = selectedRows
@@ -250,10 +250,6 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
         let toDo = fetchedResultsController.object(at: sourceIndexPath)
         toDo.priorityNumber = Int16(fetchedResultsController.sectionIndexTitles[destinationIndexPath.section])!
         try? context.save()
-    }
-    
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        return true
     }
    //function needed to enable swipe delete
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
