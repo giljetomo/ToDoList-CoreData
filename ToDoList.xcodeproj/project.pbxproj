@@ -67,8 +67,7 @@
 		526B347325A8D86500BAE8D9 /* ToDoList */ = {
 			isa = PBXGroup;
 			children = (
-				526B34AC25A8E00400BAE8D9 /* UIView+ConstraintLayout.swift */,
-				5281143D25E18271007F3278 /* FetchedResultsTableViewController.swift */,
+				5281144A25E3A163007F3278 /* Utilities */,
 				5281143425E17EC9007F3278 /* Model */,
 				5281143B25E181FF007F3278 /* ToDo */,
 				5281142625E17C48007F3278 /* Supporting Files */,
@@ -106,6 +105,15 @@
 				526B34BF25AD72F600BAE8D9 /* AddEditViewController.swift */,
 			);
 			path = ToDo;
+			sourceTree = "<group>";
+		};
+		5281144A25E3A163007F3278 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				526B34AC25A8E00400BAE8D9 /* UIView+ConstraintLayout.swift */,
+				5281143D25E18271007F3278 /* FetchedResultsTableViewController.swift */,
+			);
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
