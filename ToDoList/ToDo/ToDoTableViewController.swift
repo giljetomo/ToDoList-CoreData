@@ -33,8 +33,9 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
         let request: NSFetchRequest<ManagedToDo> = ManagedToDo.fetchRequest()
         //should be sorted by priorityNumber first then title
         request.sortDescriptors = [NSSortDescriptor(key: "priorityNumber", ascending: true)]
+       
         //  sorted by title works but this messes up when the item is moved/moveRowAt
-        //  request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
+//          request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))]
         
         let frc = NSFetchedResultsController<ManagedToDo>(
             fetchRequest: request,
@@ -233,23 +234,21 @@ class ToDoTableViewController: FetchedResultsTableViewController, addEditViewCon
     }
     
     override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        // nothing happens when moving between rows (todo items with the same priority don't have any property to order)
+        guard sourceIndexPath.section != destinationIndexPath.section || sourceIndexPath != destinationIndexPath else { return }
+        changeIsUserDriven = true
         
-        //if any item is currently selected and has been moved, its respective IndexPath will be collected
-        if let selectedRows = tableView.indexPathsForSelectedRows {
-            //get the [IndexPath] of all selected rows during edit mode
-            self.selectedRows = selectedRows
-        }
-        //code for debugging
-        //  let updated = ToDo(title: toDo.title!, todoDescription: toDo.toDoDescription, priority: sections[Int(toDo.priorityNumber)], isCompleted: toDo.isCompleted)
-        // _ = try? ManagedToDo.findOrCreateToDo(matching: updated, in: context)
-       
-        //destinationIndexPath needs to be stored as newIndexPath of the fetchController gets updated due to the sortDescriptor defined. For further debugging and implementation
-        ToDoTableViewController.destinationIndexPath = destinationIndexPath
-        
-        let context = container.viewContext
         let toDo = fetchedResultsController.object(at: sourceIndexPath)
         toDo.priorityNumber = Int16(fetchedResultsController.sectionIndexTitles[destinationIndexPath.section])!
-        try? context.save()
+        try? fetchedResultsController.managedObjectContext.save()
+    }
+    //disable reordering in the same section
+    override func tableView(_ tableView: UITableView, targetIndexPathForMoveFromRowAt sourceIndexPath: IndexPath, toProposedIndexPath proposedDestinationIndexPath: IndexPath) -> IndexPath {
+      if sourceIndexPath.section == proposedDestinationIndexPath.section {
+        return sourceIndexPath
+      } else {
+        return proposedDestinationIndexPath
+      }
     }
    //function needed to enable swipe delete
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {

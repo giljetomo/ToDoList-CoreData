@@ -10,6 +10,8 @@ import CoreData
 
 class FetchedResultsTableViewController: UITableViewController, NSFetchedResultsControllerDelegate {
   
+    var changeIsUserDriven: Bool? = nil
+    
   public func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
     tableView.beginUpdates()
   }
@@ -29,11 +31,9 @@ class FetchedResultsTableViewController: UITableViewController, NSFetchedResults
       case .delete:
         tableView.deleteRows(at: [indexPath!], with: .fade)
       case .move:
-//        tableView.deleteRows(at: [indexPath!], with: .fade)
-//        tableView.insertRows(at: [ToDoTableViewController.destinationIndexPath!], with: .fade)
-        
-        //temporary implementation as delete/insert rows don't work properly
-        tableView.reloadData()
+        if let changeIsUserDriven = changeIsUserDriven, changeIsUserDriven { break }
+        tableView.deleteRows(at: [indexPath!], with: .fade)
+        tableView.insertRows(at: [newIndexPath!], with: .fade)
       case .update:
       tableView.reloadRows(at: [indexPath!], with: .fade)
       @unknown default:
@@ -43,6 +43,11 @@ class FetchedResultsTableViewController: UITableViewController, NSFetchedResults
   
   func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
     tableView.endUpdates()
+    guard let changeIsUserDriven = changeIsUserDriven, changeIsUserDriven else { return }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+      self.tableView.reloadData()
+    }
+    self.changeIsUserDriven = nil
   }
   
 }
